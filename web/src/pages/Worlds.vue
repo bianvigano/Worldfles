@@ -28,18 +28,59 @@ async function refresh() {
 }
 
 async function createWorld() {
+  // ✅ DEFAULT WORLD SESUAI WorldViewer.js
   const defaultWorld = {
+    version: 3,
+    size: { W: 5, H: 4, D: 5 },
+
+    // arr3d[x][y][z]
     arr3d: [
-      [[0,1,1,1,1]],
-      [[1,1,1,1,1]],
-      [[1,1,2,1,1]],
-      [[1,1,1,1,1]],
-      [[1,1,1,1,1]]
+      [
+        [1,1,1,1,1],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+      ],
+      [
+        [1,1,1,1,1],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+      ],
+      [
+        [1,1,2,1,1],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+      ],
+      [
+        [1,1,1,1,1],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+      ],
+      [
+        [1,1,1,1,1],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+        [0,0,0,0,0],
+      ],
     ],
-    meta: { blockSize: 16 }
+
+    camera: {
+      ANGLE: 0,
+      RADIUS: 100,
+      CENTER_Y: 0,
+      ELEVATION: 50,
+    }
   };
 
-  const { data } = await api.post("/worlds", { name: newName.value, data: defaultWorld });
+  const { data } = await api.post("/worlds", {
+    name: newName.value,
+    data: defaultWorld
+  });
+
+  // redirect ke editor
   location.href = `/world/${data.id}`;
 }
 

@@ -1,8 +1,14 @@
 const Database = require("better-sqlite3");
+const path = require("path");
 
-const db = new Database("app.db");
+// 🔴 ABSOLUTE PATH (INI PENTING)
+const dbPath = path.join(__dirname, "app.db");
+
+const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
 
+// SCHEMA
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,8 +25,10 @@ CREATE TABLE IF NOT EXISTS worlds (
   data_json TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 `);
+
+console.log("✅ DB path:", dbPath);
 
 module.exports = { db };

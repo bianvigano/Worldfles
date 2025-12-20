@@ -12,19 +12,14 @@
       </div>
 
       <div class="hint">
-        Drag untuk taruh. <b>Destroy</b> untuk hapus jadi <b>Air</b>. (Shift = erase cepat)
+        Drag untuk taruh. <b>Destroy</b> untuk hapus. (Shift = erase cepat)
       </div>
 
-      <!-- LAYER + UNDO REDO -->
+      <!-- LAYER -->
       <div class="miniRow">
         <button class="miniBtn" @click="layerDown">Y -</button>
         <div class="layerInfo">Layer Y: <b>{{ activeY }}</b></div>
         <button class="miniBtn" @click="layerUp">Y +</button>
-      </div>
-
-      <div class="miniRow">
-        <button class="miniBtn" @click="undo">↩ Undo</button>
-        <button class="miniBtn" @click="redo">↪ Redo</button>
       </div>
 
       <!-- SAVE LOAD -->
@@ -33,42 +28,36 @@
         <button class="miniBtn" @click="loadLocal">📥 Load Local</button>
       </div>
 
-      <div class="miniRow">
-        <input class="nameInput" v-model="worldName" placeholder="World name..." />
-        <button class="miniBtn" @click="saveToServer">☁ Save API</button>
-        <button class="miniBtn" @click="loadFromServer">☁ Load API</button>
-      </div>
-
       <!-- CAMERA -->
       <div class="row">
         <label>Angle</label>
-        <input class="slider" type="range" min="-360" max="360" step="1"
+        <input class="slider" type="range" min="-360" max="360"
                v-model.number="angle" @input="applyCam" />
-        <input class="num" type="number" min="-360" max="360" step="1"
+        <input class="num" type="number"
                v-model.number="angle" @change="applyCam" />
       </div>
 
       <div class="row">
         <label>Distance</label>
-        <input class="slider" type="range" min="1" max="400" step="1"
+        <input class="slider" type="range" min="1" max="400"
                v-model.number="radius" @input="applyCam" />
-        <input class="num" type="number" min="1" max="400" step="1"
+        <input class="num" type="number"
                v-model.number="radius" @change="applyCam" />
       </div>
 
       <div class="row">
         <label>Height</label>
-        <input class="slider" type="range" min="-128" max="128" step="1"
+        <input class="slider" type="range" min="-128" max="128"
                v-model.number="height" @input="applyCam" />
-        <input class="num" type="number" min="-128" max="128" step="1"
+        <input class="num" type="number"
                v-model.number="height" @change="applyCam" />
       </div>
 
       <div class="row">
         <label>Elevation</label>
-        <input class="slider" type="range" min="-90" max="90" step="1"
+        <input class="slider" type="range" min="-90" max="90"
                v-model.number="elevation" @input="applyCam" />
-        <input class="num" type="number" min="-90" max="90" step="1"
+        <input class="num" type="number"
                v-model.number="elevation" @change="applyCam" />
       </div>
 
@@ -84,20 +73,17 @@ import { createWorldViewer } from "../three/WorldViewer.js";
 const viewer = ref(null);
 let app = null;
 
-// camera sliders
+// camera
 const angle = ref(0);
 const radius = ref(100);
 const height = ref(0);
 const elevation = ref(50);
 
-// brush: 1 ground, 2 water, 3 wheat, -1 destroy
-const brush = ref(1);
+// brush
+const brush = ref(1); // 1 ground, 2 water, 3 wheat, -1 destroy
 
 // layer
 const activeY = ref(0);
-
-// save name
-const worldName = ref("MyWorld");
 
 function applyCam() {
   app?.setCamera({
@@ -130,58 +116,32 @@ function layerDown() {
   app?.setActiveLayer(activeY.value);
 }
 
-function undo() { app?.undo(); }
-function redo() { app?.redo(); }
-
-// LocalStorage
+// SAVE / LOAD
 function saveLocal() {
   const data = app?.exportWorld();
+  if (!data) return;
   localStorage.setItem("world:last", JSON.stringify(data));
   alert("Saved to LocalStorage ✅");
 }
+
 function loadLocal() {
   const raw = localStorage.getItem("world:last");
   if (!raw) return alert("Belum ada save local.");
   app?.importWorld(JSON.parse(raw));
-  activeY.value = app?.getActiveLayer?.() ?? 0;
-  alert("Loaded from LocalStorage ✅");
-}
-
-// API (SQLite)
-async function saveToServer() {
-  const data = app?.exportWorld();
-  const r = await fetch("/api/worlds/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: worldName.value, data }),
-  });
-  const j = await r.json();
-  if (!r.ok) return alert(j?.error || "Save failed");
-  alert(`Saved to API ✅ (id=${j.id})`);
-}
-
-async function loadFromServer() {
-  const r = await fetch(`/api/worlds/by-name/${encodeURIComponent(worldName.value)}`);
-  const j = await r.json();
-  if (!r.ok) return alert(j?.error || "Load failed");
-  app?.importWorld(j.data);
-  activeY.value = app?.getActiveLayer?.() ?? 0;
-  alert("Loaded from API ✅");
+  activeY.value = app?.getActiveLayer() ?? 0;
 }
 
 onMounted(() => {
   app = createWorldViewer(viewer.value);
   app.start();
-
-  // init brush & layer
   setBrush(brush.value);
   app.setActiveLayer(activeY.value);
-
   applyCam();
 });
 
 onBeforeUnmount(() => app?.stop());
 </script>
+
 
 <style scoped>
 .page { width: 100vw; height: 100vh; overflow: hidden; }
@@ -196,7 +156,6 @@ onBeforeUnmount(() => app?.stop());
   padding: 12px;
   border-radius: 10px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-  font-family: Arial, sans-serif;
   width: 380px;
 }
 
@@ -235,13 +194,6 @@ onBeforeUnmount(() => app?.stop());
   font-weight: 700;
 }
 .layerInfo{ flex: 1; font-size: 13px; }
-
-.nameInput{
-  flex: 1;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.15);
-}
 
 .row{
   display: grid;
