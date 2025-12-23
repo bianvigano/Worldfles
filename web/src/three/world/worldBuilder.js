@@ -42,20 +42,25 @@ export function createWorldBuilder({
             BLOCK_SIZE
         );
 
-        const mesh = new THREE.Mesh(geo, [
-            textures.groundBase,
-            textures.groundBase,
-            textures.groundTop,
-            textures.groundBase,
-            textures.groundBase,
-            textures.groundBase,
-        ]);
+        const groundMaterials = [
+            new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+            new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+            new THREE.MeshBasicMaterial({ map: textures.groundTop }),
+            new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+            new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+            new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+        ];
+
+        const mesh = new THREE.Mesh(geo, groundMaterials);
 
         mesh.position.set(
             i * BLOCK_SIZE + off[0] - cen[0],
             H * BLOCK_SIZE - j * BLOCK_SIZE + off[1] - cen[1],
             k * BLOCK_SIZE + off[2] - cen[2]
         );
+        // mesh.userData = { solid: true, i, j, k };
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
 
         mesh.userData = { solid: true, i, j, k };
         return mesh;

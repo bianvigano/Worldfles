@@ -3,13 +3,15 @@ import * as THREE from "three";
 /**
  * Helper load texture dengan opsi mirror
  */
-function loadTexture(uri, opts = {}) {
+function loadTexture(uri, { mirrorX = false } = {}) {
     const tex = new THREE.TextureLoader().load(uri);
 
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.colorSpace = THREE.SRGBColorSpace;
 
-    if (opts.mirrorX) {
+    if (mirrorX) {
         tex.wrapS = THREE.RepeatWrapping;
         tex.repeat.x = -1;
         tex.offset.x = 1;
