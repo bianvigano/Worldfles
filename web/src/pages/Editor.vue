@@ -8,7 +8,7 @@
         <button class="brushBtn" :class="{active: brush===1}" @click="setBrush(1)">🟫 Ground</button>
         <button class="brushBtn" :class="{active: brush===2}" @click="setBrush(2)">🟦 Water</button>
         <button class="brushBtn" :class="{active: brush===3}" @click="setBrush(3)">🌾 Wheat</button>
-        <button class="brushBtn danger" :class="{active: brush===-1}" @click="setBrush(-1)">💥 Destroy</button>
+        <button class="brushBtn danger" :class="{active: brush===0}" @click="setBrush(0)">💥 Destroy</button>
       </div>
 
       <div class="hint">

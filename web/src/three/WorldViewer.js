@@ -150,7 +150,11 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
 
     function tryDestroy(cell) {
         if (!cell) return;
-        world.set(cell.i, cell.j, cell.k, 0);
+
+        const { i, j, k } = cell;
+        if (world.get(i, j, k) === 0) return;
+
+        world.set(i, j, k, 0);
         rebuildWorld();
     }
 
@@ -212,17 +216,60 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
     // =========================
     let isDown = false;
 
+    // function onMove(ev) {
+    //     getMouseNDC(ev);
+    //     raycaster.setFromCamera(mouse, camera);
+
+    //     const hit = raycastSolids();
+    //     const target = hit ? hit.cell : pickCellFromPlane();
+
+    //     setHoverToCell(target);
+
+    //     if (isDown && target) tryPlace(target);
+    // }
+
+    // function onDown(ev) {
+    //     isDown = true;
+    //     getMouseNDC(ev);
+    //     raycaster.setFromCamera(mouse, camera);
+
+    //     const hit = raycastSolids();
+    //     const target = hit ? hit.cell : pickCellFromPlane();
+
+    //     if (target) tryPlace(target);
+    // }
+
+    function getPrevCellFromHit(hitInfo) {
+        const { hit, cell } = hitInfo;
+        const n = hit.face?.normal || new THREE.Vector3(0, 1, 0);
+
+        return {
+            i: cell.i + Math.round(n.x),
+            j: cell.j - Math.round(n.y), // y kebalik
+            k: cell.k + Math.round(n.z),
+        };
+    }
+
     function onMove(ev) {
         getMouseNDC(ev);
         raycaster.setFromCamera(mouse, camera);
 
         const hit = raycastSolids();
-        const target = hit ? hit.cell : pickCellFromPlane();
+
+        // drag destroy
+        if (isDown && ev.shiftKey && hit) {
+            tryDestroy(hit.cell);
+            setHoverToCell(hit.cell);
+            return;
+        }
+
+        const target = hit ? getPrevCellFromHit(hit) : pickCellFromPlane();
 
         setHoverToCell(target);
 
         if (isDown && target) tryPlace(target);
     }
+
 
     function onDown(ev) {
         isDown = true;
@@ -230,7 +277,17 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
         raycaster.setFromCamera(mouse, camera);
 
         const hit = raycastSolids();
-        const target = hit ? hit.cell : pickCellFromPlane();
+
+        // 🔥 DESTROY HARUS PERTAMA
+        if (ev.shiftKey && hit) {
+            tryDestroy(hit.cell);
+            return;
+        }
+
+        // PLACE
+        const target = hit
+            ? getPrevCellFromHit(hit)
+            : pickCellFromPlane();
 
         if (target) tryPlace(target);
     }
@@ -242,34 +299,61 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
     // =========================
     // LOOP
     // =========================
+    let raf = 0;
     function loop() {
         renderer.render(scene, camera);
-        requestAnimationFrame(loop);
+        raf = requestAnimationFrame(loop);
+    }
+
+    // =========================
+    // utils
+    // =========================
+    function setActiveLayer(y) {
+        const { H } = getOffAndCenter();
+        activeLayer = clamp(y, 0, H - 1);
+        rebuildWorld(); // supaya red grid pindah layer
     }
 
     // =========================
     // PUBLIC API
     // =========================
-    function start() {
-        resize(camera);
-        setCamera({});
-        createHoverMesh();
-        rebuildWorld();
-        loop();
-
-        renderer.domElement.addEventListener("pointermove", onMove);
-        renderer.domElement.addEventListener("pointerdown", onDown);
-        window.addEventListener("pointerup", onUp);
-    }
-
     return {
-        start,
+        start() {
+            resize(camera);
+            setCamera({});
+            createHoverMesh();
+            rebuildWorld();
+            loop();
 
-        // 🔥 TAMBAHKAN INI
+            window.addEventListener("resize", resize);
+            renderer.domElement.addEventListener("pointermove", onMove);
+            renderer.domElement.addEventListener("pointerdown", onDown);
+            window.addEventListener("pointerup", onUp);
+            renderer.domElement.addEventListener("pointerleave", onUp);
+        },
+        stop() {
+            cancelAnimationFrame(raf);
+            window.removeEventListener("resize", resize);
+            renderer.domElement.removeEventListener("pointermove", onMove);
+            renderer.domElement.removeEventListener("pointerdown", onDown);
+            window.removeEventListener("pointerup", onUp);
+            renderer.domElement.removeEventListener("pointerleave", onUp);
+            renderer.dispose();
+            containerEl.innerHTML = "";
+        },
+
         setCamera,
 
-        setBrush: (t) => (placeType = t),
-        setActiveLayer: (l) =>
-            (activeLayer = clamp(l, 0, world.worldSize.H - 1)),
+        setBrush(t) {
+            if (t === 0) mode = "destroy";
+            else {
+                mode = "place";
+                placeType = t;
+            }
+        },
+
+        setActiveLayer,
+        // setActiveLayer: (l) =>
+        //     (activeLayer = clamp(l, 0, world.worldSize.H - 1)),
     };
 }
