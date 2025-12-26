@@ -1,10 +1,23 @@
 import * as THREE from "three";
 
 /**
- * Helper load texture dengan opsi mirror
+ * Load texture untuk voxel / pixel-art.
+ * Default:
+ * - flipY = false (Minecraft-style)
+ * - nearest filter
+ * - tanpa mipmap
  */
-function loadTexture(uri, { mirrorX = false } = {}) {
+export function loadTexture(
+    uri,
+    {
+        mirrorX = false,
+        flipY = false, // default aman untuk voxel
+    } = {}
+) {
     const tex = new THREE.TextureLoader().load(uri);
+
+    // 🔥 PENTING: untuk texture voxel / pixel-art
+    tex.flipY = flipY;
 
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;
@@ -51,7 +64,7 @@ export function createTextures() {
     water.wrapT = THREE.RepeatWrapping;
 
     // wheat
-    const wheat = loadTexture(TEXTURE_URIS.WHEAT);
+    const wheat = loadTexture(TEXTURE_URIS.WHEAT, { flipY: true });
     const wheatMirror = loadTexture(TEXTURE_URIS.WHEAT, { mirrorX: true });
 
     // =========================

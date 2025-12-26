@@ -77,7 +77,7 @@ let app = null;
 const angle = ref(0);
 const radius = ref(100);
 const height = ref(0);
-const elevation = ref(50);
+const elevation = ref(0);
 
 // brush
 const brush = ref(1); // 1 ground, 2 water, 3 wheat, -1 destroy
@@ -98,7 +98,7 @@ function resetCam() {
   angle.value = 0;
   radius.value = 100;
   height.value = 0;
-  elevation.value = 50;
+  elevation.value = 0;
   applyCam();
 }
 

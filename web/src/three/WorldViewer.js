@@ -185,7 +185,7 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
     }
 
     function pickCellFromPlane() {
-        const { off, structCen, H, W, D } = getOffAndCenter();
+        const { off, structCen, W, H, D } = getOffAndCenter();
 
         const yPlane =
             H * BLOCK_SIZE -
@@ -193,51 +193,34 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
             off[1] -
             structCen[1];
 
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -yPlane);
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(0, yPlane, 0)
+        );
+
         if (!raycaster.ray.intersectPlane(plane, tmpPoint)) return null;
+        const hitPlane = raycaster.ray.intersectPlane(plane, tmpPoint);
+        // console.log("plane hit?", hitPlane, tmpPoint.y);
+        if (!hitPlane) return null;
+
+
+        const i = Math.floor((tmpPoint.x + structCen[0] - off[0]) / BLOCK_SIZE);
+        const k = Math.floor((tmpPoint.z + structCen[2] - off[2]) / BLOCK_SIZE);
+        // console.log("pickCellFromPlane called, activeLayer =", activeLayer);
 
         return {
-            i: clamp(
-                Math.floor((tmpPoint.x + structCen[0] - off[0]) / BLOCK_SIZE),
-                0,
-                W - 1
-            ),
+            i: clamp(i, 0, W - 1),
             j: activeLayer,
-            k: clamp(
-                Math.floor((tmpPoint.z + structCen[2] - off[2]) / BLOCK_SIZE),
-                0,
-                D - 1
-            ),
+            k: clamp(k, 0, D - 1),
         };
     }
+
+
 
     // =========================
     // INPUT
     // =========================
     let isDown = false;
-
-    // function onMove(ev) {
-    //     getMouseNDC(ev);
-    //     raycaster.setFromCamera(mouse, camera);
-
-    //     const hit = raycastSolids();
-    //     const target = hit ? hit.cell : pickCellFromPlane();
-
-    //     setHoverToCell(target);
-
-    //     if (isDown && target) tryPlace(target);
-    // }
-
-    // function onDown(ev) {
-    //     isDown = true;
-    //     getMouseNDC(ev);
-    //     raycaster.setFromCamera(mouse, camera);
-
-    //     const hit = raycastSolids();
-    //     const target = hit ? hit.cell : pickCellFromPlane();
-
-    //     if (target) tryPlace(target);
-    // }
 
     function getPrevCellFromHit(hitInfo) {
         const { hit, cell } = hitInfo;
@@ -249,6 +232,7 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
             k: cell.k + Math.round(n.z),
         };
     }
+
 
     function onMove(ev) {
         getMouseNDC(ev);
@@ -288,7 +272,7 @@ export function createWorldViewer(containerEl, textures, BLOCK_SIZE = 16) {
         const target = hit
             ? getPrevCellFromHit(hit)
             : pickCellFromPlane();
-
+        console.log("onDown target:", target);
         if (target) tryPlace(target);
     }
 

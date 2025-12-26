@@ -45,8 +45,8 @@ export function createWorldBuilder({
         const groundMaterials = [
             new THREE.MeshBasicMaterial({ map: textures.groundBase }),
             new THREE.MeshBasicMaterial({ map: textures.groundBase }),
-            new THREE.MeshBasicMaterial({ map: textures.groundTop }),
             new THREE.MeshBasicMaterial({ map: textures.groundBase }),
+            new THREE.MeshBasicMaterial({ map: textures.groundTop }),
             new THREE.MeshBasicMaterial({ map: textures.groundBase }),
             new THREE.MeshBasicMaterial({ map: textures.groundBase }),
         ];
@@ -72,7 +72,7 @@ export function createWorldBuilder({
     function makeWater(i, j, k, off, cen, H) {
         const geo = new THREE.BoxGeometry(
             BLOCK_SIZE,
-            15,
+            14,
             BLOCK_SIZE
         );
 
@@ -100,48 +100,88 @@ export function createWorldBuilder({
     // WHEAT (OVERLAY)
     // =========================
     function makeWheat(i, j, k, off, cen, H) {
-        const group = new THREE.Group();
 
-        const geoA = new THREE.BoxGeometry(0, 15, 14);
-        const geoB = new THREE.BoxGeometry(14, 15, 0);
+        // =====================================================
+        // 🔧 CONFIG UTAMA – UBAH DI SINI SAJA
+        // =====================================================
+        const CONFIG = {
+            // Ukuran satu batang gandum
+            HEIGHT: 15,      // tinggi plane
+            WIDTH: 15,       // lebar plane
 
-        const matA = [
-            new THREE.MeshBasicMaterial({ map: textures.wheat, transparent: true }),
-            new THREE.MeshBasicMaterial({ map: textures.wheatMirror, transparent: true }),
-            ...Array(4).fill(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })),
-        ];
+            // Posisi vertikal
+            SINK: 16,         // seberapa dalam masuk ke tanah
+            Y_OFFSET: 2,      // offset tambahan ke atas
 
-        const matB = [
-            ...Array(4).fill(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })),
-            new THREE.MeshBasicMaterial({ map: textures.wheat, transparent: true }),
-            new THREE.MeshBasicMaterial({ map: textures.wheatMirror, transparent: true }),
-        ];
+            // Material behavior
+            alphaTest: 0.3,   // potong alpha (hindari transparansi blur)
+            depthWrite: false, // cegah depth glitch antar daun
 
-        const m1 = new THREE.Mesh(geoA, matA);
-        const m2 = new THREE.Mesh(geoA, matA);
-        const m3 = new THREE.Mesh(geoB, matB);
-        const m4 = new THREE.Mesh(geoB, matB);
+            // Posisi & rotasi tiap plane (relatif ke tengah)
+            // x,z = offset posisi
+            // rx, ry = rotasi (radian)
+            PLANES: [
+                { x: 4, z: 0, ry: Math.PI / 2, rx: Math.PI }, // kanan
+                { x: -4, z: 0, ry: Math.PI / 2, rx: Math.PI }, // kiri
+                { x: 0, z: -6, ry: Math.PI, rx: Math.PI }, // depan
+                { x: 0, z: 6, ry: Math.PI, rx: Math.PI }, // belakang
+            ]
+        };
 
+        // =====================================================
+        // 📐 GEOMETRY & MATERIAL
+        // =====================================================
+        const geo = new THREE.PlaneGeometry(CONFIG.WIDTH, CONFIG.HEIGHT);
+
+        const mat = new THREE.MeshBasicMaterial({
+            map: textures.wheat,
+            transparent: true,
+            side: THREE.DoubleSide,
+            alphaTest: CONFIG.alphaTest,
+            depthWrite: CONFIG.depthWrite,
+        });
+
+        // =====================================================
+        // 🌍 POSISI WORLD
+        // =====================================================
         const x = i * BLOCK_SIZE + off[0] - cen[0];
         const z = k * BLOCK_SIZE + off[2] - cen[2];
 
-        const topY =
+        const groundTopY =
             H * BLOCK_SIZE -
             j * BLOCK_SIZE +
             off[1] -
             cen[1] +
             BLOCK_SIZE / 2;
 
-        const y = topY + 0.01;
+        const baseY =
+            groundTopY -
+            CONFIG.SINK +
+            CONFIG.HEIGHT / 2 +
+            CONFIG.Y_OFFSET;
 
-        m1.position.set(x + 4, y, z);
-        m2.position.set(x - 4, y, z);
-        m3.position.set(x, y, z + 4);
-        m4.position.set(x, y, z - 4);
+        const group = new THREE.Group();
 
-        group.add(m1, m2, m3, m4);
+        // =====================================================
+        // 🌾 BUAT PLANE GANDUM
+        // =====================================================
+        CONFIG.PLANES.forEach(p => {
+            const mesh = new THREE.Mesh(geo, mat);
+
+            mesh.position.set(
+                x + p.x,
+                baseY,
+                z + p.z
+            );
+
+            mesh.rotation.set(p.rx, p.ry, 0);
+
+            group.add(mesh);
+        });
+
         return group;
     }
+
 
     // =========================
     // BUILD BLOCKS
